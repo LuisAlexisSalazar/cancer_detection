@@ -1,9 +1,11 @@
 from imgDescriptors.lbp import Lbp
-if __name__ == '__main__':
-    # LBP = Lbp("emoji.pgm")
+from tools.tool import Img
 
-    # LBP = Lbp("mdb001.pgm")
-    LBP = Lbp("emojiResize.pgm")
-    LBP.print()
-    # print(LBP.matrix_img)
-    # LBP.print()
+# ctrl + shift + i show definición
+# ctrl + B : travel to implementation
+
+if __name__ == '__main__':
+    pass
+    # img = Img("mdb001.pgm","dataSet/")
+    # LBP = Lbp(img)
+    # LBP.generateImg()
