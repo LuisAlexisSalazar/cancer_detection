@@ -35,16 +35,16 @@ class Lbp:
         self.matrix = np.array(self.img.generate_Matrix())
         self.newMatrix = np.copy(self.matrix)
 
-    def algorithm(self):
+    def algorithm(self, nameFile):
         for idxR in range(self.img.height):
             for idxC in range(self.img.width):
-                if idxR == 0 or idxC == 0 or idxC == self.img.width-1 or idxR == self.img.height-1:
+                if idxR == 0 or idxC == 0 or idxC == self.img.width - 1 or idxR == self.img.height - 1:
                     continue
                 else:
                     # print(self.newMatrix[idxR, idxC])
                     # print(cal_basic(self.matrix, idxR, idxC))
                     self.newMatrix[idxR, idxC] = bin_to_decimal(cal_basic(self.matrix, idxR, idxC))
-        self.generateImg()
+        self.generateImg(nameFile)
 
     def print(self):
         print("Width:", self.img.width)
@@ -56,10 +56,11 @@ class Lbp:
 
         print("Valores de la imagen: \n", self.matrix)
 
-    def generateImg(self):
+    def generateImg(self, nameFile):
         # f = open(self.img.folder + "newImg.pgm", 'wb')
         # f = open("test/" + "newImg.pgm", 'wb')
-        f = open("newImg.pgm", 'wb')
+        # f = open("newImg.pgm", 'wb')
+        f = open(nameFile + ".pgm", 'wb')
         pgmHeader = 'P5' + '\n' + str(self.img.width) + ' ' + str(self.img.height) + ' ' + str(255) + '\n'
         pgmHeader_byte = bytearray(pgmHeader, 'utf-8')
         f.write(pgmHeader_byte)
