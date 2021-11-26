@@ -1,16 +1,10 @@
 # coding: utf8
-from __future__ import division
-import numpy as np
-import array
-from matplotlib import pyplot as plt
+import time
+from datetime import timedelta
 import math
+import numpy as np
 
 
-
-# pgm-reader 0.0.1
-
-# https://pypi.org/project/netpbmfile/
-# https://pypi.org/project/netpbmfile/#description
 class Img:
     matrixRoi = None
     widthRoi = None
@@ -18,22 +12,22 @@ class Img:
 
     def __init__(self, name_File, folder="dataSet/"):
         try:
-            self.pgmf = open(folder + name_File, 'rb')
+            self.pgmFile = open(folder + name_File, 'rb')
             self.name_File = name_File
             self.folder = folder
         except IOError:
             print("Archivo no encontrado")
             exit()
 
-        header = self.pgmf.readline()
+        header = self.pgmFile.readline()
         assert header[:2] == b'P5'
 
         if self.isGimp():
-            self.pgmf.readline()
+            self.pgmFile.readline()
 
-        (self.width, self.height) = [int(i) for i in self.pgmf.readline().split()]
+        (self.width, self.height) = [int(i) for i in self.pgmFile.readline().split()]
 
-        self.depth = int(self.pgmf.readline())
+        self.depth = int(self.pgmFile.readline())
         assert self.depth <= 255
 
         self.matrixOriginal = self.generate_Matrix()
@@ -43,7 +37,7 @@ class Img:
         for i in range(self.height):
             row = []
             for j in range(self.width):
-                row.append(ord(self.pgmf.read(1)))
+                row.append(ord(self.pgmFile.read(1)))
             matrix.append(row)
         return matrix
 
@@ -63,146 +57,77 @@ class Img:
         print("Height O:", self.height)
 
 
-def bin_to_decimal(bin):  # Binary to decimal
+def getLabels(amount=330):
+    # pathLabels = open("../dataSet/Info.txt")
+    labels = []
+    pathLabels = open("dataSet/Info.txt")
+    with pathLabels as f:
+        lines = f.readlines()
+    # 104-433 es lo unico que nos importa
+
+    lines = lines[103:433]
+    count_normal = 0
+    count_maligno = 0
+    amountTotalRead = 0
+    #  Nomrla -> 0 y Maligno -> 1
+    for line in lines:
+        # print(type(line))
+        list_split = line.split(sep=" ")
+
+        if list_split[2] == 'NORM':
+            # labels.append("N")
+            labels.append(0)
+            count_normal += 1
+        else:
+            # labels.append("M")
+            labels.append(1)
+            count_maligno += 1
+
+        amountTotalRead += 1
+        if amountTotalRead == amount:
+            break
+
+    print("Normales -> ", count_normal)
+    print("Maligno -> ", count_maligno)
+    return np.array(labels)
+
+
+def bin_to_decimal(bin):
     res = 0
-    bit_num = 0  # Shift left
+    bit_num = 0
     for i in bin[::-1]:
-        res += i << bit_num  # Shifting n bits to the left is equal to multiplying by 2 to the nth power
+        res += i << bit_num
         bit_num += 1
     return res
 
 
-def bilinear_interpolation(image, rows, cols, r, c, mode, cval):
-    """Bilinear interpolation at a given position in the image.
-    """
-    minr = int(np.floor(r))
-    minc = int(np.floor(c))
-    maxr = int(np.ceil(r))
-    maxc = int(np.ceil(c))
-    dr = r - minr
-    dc = c - minc
-    top = (1 - dc) * get_pixel2d(image, rows, cols, minr, minc, mode, cval) \
-          + dc * get_pixel2d(image, rows, cols, minr, maxc, mode, cval)
-    bottom = (1 - dc) * get_pixel2d(image, rows, cols, maxr, minc, mode,
-                                    cval) \
-             + dc * get_pixel2d(image, rows, cols, maxr, maxc, mode, cval)
-    return (1 - dr) * top + dr * bottom
+# days, hours, minutes,
+def start_time_measure(message=None):
+    if message:
+        print(message)
+    return time.time()
 
 
-def get_pixel2d(image, rows, cols, r, c, mode, cval):
-    """Get a pixel from the image, taking wrapping mode into consideration.
-    """
-    if (r < 0) or (r >= rows) or (c < 0) or (c >= cols):
-        return cval
+def end_time_measure(start_time):
+    end_time = time.time()
+    return end_time - start_time
+
+
+# function s or g
+def getPattern(value):
+    if value >= 0:
+        return 1
     else:
-        return image[r, c]
+        return 0
 
 
-def circular_LBP(src, n_points, radius):
-    height = src.shape[0]
-    width = src.shape[1]
-    dst = src.copy()
-    src.astype(dtype=np.float32)
-    dst.astype(dtype=np.float32)
-
-    neighbours = np.zeros((1, n_points), dtype=np.uint8)
-    lbp_value = np.zeros((1, n_points), dtype=np.uint8)
-    for x in range(radius, width - radius - 1):
-        for y in range(radius, height - radius - 1):
-            lbp = 0.
-            # 先计算共n_points个点对应的像素值，使用双线性插值法
-            for n in range(n_points):
-                theta = float(2 * np.pi * n) / n_points
-                x_n = x + radius * np.cos(theta)
-                y_n = y - radius * np.sin(theta)
-
-                # 向下取整
-                x1 = int(math.floor(x_n))
-                y1 = int(math.floor(y_n))
-                # 向上取整
-                x2 = int(math.ceil(x_n))
-                y2 = int(math.ceil(y_n))
-
-                # 将坐标映射到0-1之间
-                tx = np.abs(x - x1)
-                ty = np.abs(y - y1)
-
-                # 根据0-1之间的x，y的权重计算公式计算权重
-                w1 = (1 - tx) * (1 - ty)
-                w2 = tx * (1 - ty)
-                w3 = (1 - tx) * ty
-                w4 = tx * ty
-
-                # 根据双线性插值公式计算第k个采样点的灰度值
-                neighbour = src[y1, x1] * w1 + src[y2, x1] * w2 + src[y1, x2] * w3 + src[y2, x2] * w4
-
-                neighbours[0, n] = neighbour
-
-            center = src[y, x]
-
-            for n in range(n_points):
-                if neighbours[0, n] > center:
-                    lbp_value[0, n] = 1
-                else:
-                    lbp_value[0, n] = 0
-
-            for n in range(n_points):
-                lbp += lbp_value[0, n] * 2 ** n
-
-            # 转换到0-255的灰度空间，比如n_points=16位时结果会超出这个范围，对该结果归一化
-            dst[y, x] = int(lbp / (2 ** n_points - 1) * 255)
-
-    return dst
-
-
-def local_binary_pattern(image, P, R):
-    """Gray scale and rotation invariant LBP (Local Binary Patterns).
-    LBP is an invariant descriptor that can be used for texture classification.
+def _bit_rotate_right(value, length):
+    """Cyclic bit shift to the right.
+    Parameters
+    ----------
+    value : int
+        integer value to shift
+    length : int
+        number of bits of integer
     """
-
-    # local position of texture elements
-    rr = - R * np.sin(2 * np.pi * np.arange(P, dtype=np.double) / P)
-    cc = R * np.cos(2 * np.pi * np.arange(P, dtype=np.double) / P)
-    rp = np.round(rr, 5)
-    cp = np.round(cc, 5)
-
-    # pre-allocate arrays for computation
-    texture = np.zeros(P, dtype=np.double)
-    signed_texture = np.zeros(P, dtype=np.int8)
-
-    output_shape = (image.shape[0], image.shape[1])
-    output = np.zeros(output_shape, dtype=np.double)
-
-    rows = image.shape[0]
-    cols = image.shape[1]
-
-    for r in range(image.shape[0]):
-        for c in range(image.shape[1]):
-            for i in range(P):
-                texture[i] = bilinear_interpolation(image, rows, cols,
-                                                    r + rp[i], c + cp[i],
-                                                    'C', 0)
-            # signed / thresholded texture
-            for i in range(P):
-                if texture[i] - image[r, c] >= 0:
-                    signed_texture[i] = 1
-                else:
-                    signed_texture[i] = 0
-
-            # Compute the variance without passing from numpy.
-            # Following the LBP paper, we're taking a biased estimate
-            # of the variance (ddof=0)
-            sum_ = 0.0
-            var_ = 0.0
-            for i in range(P):
-                texture_i = texture[i]
-                sum_ += texture_i
-                var_ += texture_i * texture_i
-            var_ = (var_ - (sum_ * sum_) / P) / P
-            if var_ != 0:
-                lbp = var_
-            else:
-                lbp = np.nan
-            output[r, c] = lbp
-
-    return np.asarray(output)
+    return (value >> 1) | ((value & 1) << (length - 1))

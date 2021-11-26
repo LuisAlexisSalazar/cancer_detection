@@ -3,15 +3,8 @@
 # https://programmerclick.com/article/16741294597/
 # Dibujar el rectangulo con imagenes grises es decir trasnformarlo en 3 canales
 # https://stackoverflow.com/questions/61243800/how-to-draw-a-red-shape-on-a-black-background-in-cv2
-# Recordar que el 0,0 es esquina de arriba izquierda
-#  Punto arriba derecha (769,0)
-#  Punto abajo  derecha (769,1024)
-#
-#  Punto arriba izquierda (187,0)
-#  Punto abajo  izquierda (187,1024)
 
-# Rectangulo -> 2 puntos top left y bot right
-# Segmento ROI simplemnente el ancho de la imagen y alto desde
+
 import numpy as np
 from cv2 import cv2
 from matplotlib import pyplot as plt
@@ -20,8 +13,6 @@ ptl = (187, 0)
 # pbr = (769, 1024)
 pbr = (837, 1024)
 
-
-# !nota: esta mal el valor de x de la parte de la izquierda
 
 def get_matrix_ROI(Img):
     # img = img
@@ -52,9 +43,7 @@ def get_matrix_ROI(Img):
     # cv2.imshow('Img', imgRoi)
     # cv2.waitKey(0)
 
-
     # --Configurar los atributos de la clase Imagen
     Img.matrixRoi = imgRoi
     Img.heightRoi = imgRoi.shape[0]
     Img.widthRoi = imgRoi.shape[1]
-
